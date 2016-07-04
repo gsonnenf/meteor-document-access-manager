@@ -1,6 +1,6 @@
 # meteor-access-manager
 
-This is a 'per document' permissions system for the Meteor Framework using MongoDB and ECMA6. It sets up a permissions database parallel to a document database and allows you to assign permissions for each user, role, or arbitrary access key to limit document access to users with permission.
+AccessManager is a 'per document' permission library for the Meteor Framework using MongoDB and ECMA6. It allows you to set permissions on documents for each user, role, or arbitrary AccessKey. It has methods for adding, removing and testing for accessKey/Permission sets. It also has query methods for retrieving documents and cursors for accessKey/Permission sets. AccessManager keeps document data and permissions seperate by coordinates a document collection and a parallel permission collection. This allows for deployment on existing collections without database migrations. AccessManager can automatically create permissions records on document insert or lazily create them when permissions are added.
 
 
 Some Example Usage:
@@ -9,7 +9,7 @@ Some Example Usage:
 ExampleDocumentCollection = new Mongo.Collection('ExampleDocumentCollection');
 ExampleAccessCollection = new Mongo.Collection('ExampleAccessCollection');
 
-exampleAccessManager = new AccessManager({
+accessManager = new AccessManager({
     documentCollection: ExampleDocumentCollection,
     accessCollection: ExampleAccessCollection,
     options: {autoAssignOwner: true}
@@ -22,8 +22,14 @@ exampleAccessManager = new AccessManager({
  
  //Add Permissions
  accessManager.addPermission( documentId, Meteor.userId(), permEnum.Owner );
- accessManager.addPermission( documentId, someOtherUser, permEnum.Modify );
+ accessManager.addPermission( documentId, someOtherUser, 'custom' );
+ accessManager.removePermission( documentId, someOtherUser2, permEnum.Modify );
   
-  //Get document associated with accessKey
+//Get document associated with accessKey
 var docIdList = accessManager.findDocIdsByAccessKey(  Meteor.userId() );
-var ownedDocCursor = getDocCursorByAccessKeyAndPermList( Meteor.userId(),[permEnum.Owner]) 
+var ownedDocCursor = getDocCursorByAccessKeyAndPermList( Meteor.userId(),[permEnum.Owner] ); 
+
+// Get access permissions associated with a particulary accessKey
+var accessDocs = accessManager.getAccessCursorByAccessKey( role1 );
+getAccessCursorByAccessKeyAndPermList( Meteor.userId() , [permEnum.Read,permEnum.Owner] );
+
