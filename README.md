@@ -1,9 +1,12 @@
 # meteor-access-manager
 
-AccessManager is a 'per document' permission library for the Meteor Framework using MongoDB and ECMA6. It allows you to set permissions on documents for each user, role, or arbitrary AccessKey. It has methods for adding, removing and testing for accessKey/Permission sets. It also has query methods for retrieving documents and cursors for accessKey/Permission sets. AccessManager keeps document data and permissions seperate by coordinates a document collection and a parallel permission collection. This allows for deployment on existing collections without database migrations. AccessManager can automatically create permissions records on document insert or lazily create them when permissions are added.
+AccessManager is a document permission system, for the Meteor Framework and Mongodb, used to assign, modify and test permissions for individual documents. 
 
+## Description
 
-Some Example Usage:
+AccessManager allows you to set permissions on individual document for userIds, roles, or arbitrary accessKeys. It has query methods for retrieving documents with specific accessKey/permission combinations(e.g. documents a user has modify permissions for). AccessManager uses a parallel Mongo collection for permission storage to seperate concerns and allow easy deploys on existing collections(e.g. no need for db migrations). AccessManager can automatically create permissions records on document insert or lazily create them when permissions are needed.
+
+## Some Example Usage:
 ```javascript
 //Initialize
 ExampleDocumentCollection = new Mongo.Collection('ExampleDocumentCollection');
@@ -14,6 +17,7 @@ accessManager = new AccessManager({
     accessCollection: ExampleAccessCollection,
     options: {autoAssignOwner: true}
 });
+var permEnum = AccessManager.DefaultPermissionEnum;
 
 //Check permission
  var hasAccess = accessManager.hasAnyPermission(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Modify])); 
@@ -25,11 +29,11 @@ accessManager = new AccessManager({
  accessManager.addPermission( documentId, someOtherUser, 'custom' );
  accessManager.removePermission( documentId, someOtherUser2, permEnum.Modify );
   
-//Get document associated with accessKey
+//Get document associated with accessKey, useful for displaying documents a user has permission to read or modify
 var docIdList = accessManager.findDocIdsByAccessKey(  Meteor.userId() );
-var ownedDocCursor = getDocCursorByAccessKeyAndPermList( Meteor.userId(),[permEnum.Owner] ); 
+var ownedDocCursor = getDocCursorByAccessKeyAndPermList( Meteor.userId(),[permEnum.Modify] ); 
 
-// Get access permissions associated with a particulary accessKey
+// Get permissions curosors associated with a particulary accessKey, useful for UI editing of user permissions by owners.
 var accessDocs = accessManager.getAccessCursorByAccessKey( role1 );
-getAccessCursorByAccessKeyAndPermList( Meteor.userId() , [permEnum.Read,permEnum.Owner] );
+var accessDocs = accessManager.getAccessCursorByAccessKeyAndPermList( Meteor.userId() , [permEnum.Share,permEnum.Owner] );
 
