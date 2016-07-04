@@ -4,7 +4,7 @@ AccessManager is a document permission system, for the Meteor Framework and Mong
 
 ## Description
 
-AccessManager allows you to set permissions on individual document for userIds, roles, or arbitrary accessKeys. It has query methods for retrieving documents with specific accessKey/permission combinations(e.g. documents a user has modify permissions for). AccessManager uses a parallel Mongo collection for permission storage to seperate concerns and allow easy deploys on existing collections(e.g. no need for db migrations). AccessManager can automatically create permissions records on document insert or lazily create them when permissions are needed.
+AccessManager allows you to set permissions on individual document for userIds, roles, or arbitrary accessKeys. It has query methods for retrieving documents with specific accessKey/permission combinations(e.g. documents a user has modify permissions for). AccessManager uses a parallel Mongo collection for permission storage allowing easy deploys on existing collections(e.g. no need for db migrations). AccessManager can automatically create permissions records on document insert or lazily create them when permissions are needed.
 
 ## Some Example Usage:
 ```javascript
