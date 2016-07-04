@@ -1,4 +1,4 @@
-# meteor-access-manager
+# meteor-document-access-manager
 
 AccessManager is a document permission system, for the Meteor Framework and Mongodb, used to assign, modify and test permissions for individual documents. 
 
