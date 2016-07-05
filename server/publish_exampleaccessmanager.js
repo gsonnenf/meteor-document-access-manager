@@ -2,17 +2,22 @@
  * Created by Greg on 6/28/2016.
  */
 import '/common/collection_exampleaccessmanager'
-import '/common/framework_accessmanager'
+import '/common/accessmanager'
 import '/server/utility_security_server'
 
+exampleAccessManager = new AccessManager({
+    documentCollection: ExampleDocumentCollection,
+    accessCollection: ExampleAccessCollection,
+    options: {autoAssignOwner: true}
+});
 
-var permEnum = AccessManager.DefaultPermissionEnum;
+var permEnum = AccessManager.DefaultPermEnum;
 
 Meteor.publish('allDocumentCollection', function() {
     return ExampleDocumentCollection.find();
 });
 
-Meteor.publish( 'allAccessCollection', function(permissionList){
+Meteor.publish( 'allAccessCollection', function(){
     return ExampleAccessCollection.find();
 });
 
@@ -39,25 +44,44 @@ Meteor.methods({
     },
 
     updateDocument: function(documentId, text) {
-        if( !exampleAccessManager.hasAnyPermission(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Modify]) ) accessDenied();
+        if( !exampleAccessManager.hasPermissionAny(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Modify]) ) accessDenied();
         ExampleDocumentCollection.update(documentId, {$set: {text: text} });
         return ExampleDocumentCollection.findOne( documentId );
     },
 
     removeDocument: function(documentId) {
-        if( !exampleAccessManager.hasAnyPermission(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Delete]) ) accessDenied();
+        if( !exampleAccessManager.hasPermissionAny(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Delete]) ) accessDenied();
         ExampleDocumentCollection.remove(documentId);
     },
 
     addModifyPermission: function(documentId, userId) {
-        if( !exampleAccessManager.hasAnyPermission(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Share]) ) accessDenied();
-        exampleAccessManager.addPermission(documentId, userId, permEnum.Modify);
+        if( !exampleAccessManager.hasPermissionAny(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Share]) ) accessDenied();
+        exampleAccessManager.addPermissions(documentId, userId, permEnum.Modify);
         return "called";
     },
 
     removeModifyPermission: function(documentId, userId) {
-        if( !exampleAccessManager.hasAnyPermission(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Share]) ) accessDenied();
-        exampleAccessManager.addPermission(documentId, userId, permEnum.Modify);
+        if( !exampleAccessManager.hasPermissionAny(documentId, Meteor.userId(), [permEnum.Owner,permEnum.Share]) ) accessDenied();
+        exampleAccessManager.addPermissions(documentId, userId, permEnum.Modify);
         return "called";
     }
+});
+
+
+Meteor.users.allow({
+    update: ()=>{return true},
+    insert: ()=>{return true},
+    remove: ()=>{return true},
+});
+
+ExampleDocumentCollection.allow({
+    update: ()=>{return true},
+    insert: ()=>{return true},
+    remove: ()=>{return true},
+});
+
+ExampleAccessCollection.allow({
+    update: ()=>{return true},
+    insert: ()=>{return true},
+    remove: ()=>{return true},
 });

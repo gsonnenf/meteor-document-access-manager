@@ -12,38 +12,35 @@ describe('exampleAccessManager',function() {
 
     var account1 = {username: "TestUser1", password: "1234"};
     var account2 = {username: "TestUser2", password: "1234"};
-    var account3 = {username: "TestUser3", password: "1234"};
-
-
+    
     var mockStringGenerator = function func( text ) {
         if (!func.counter) func.counter = 0;
         if (! text ) text = 'string';
         return text + func.counter++;
     };
 
-    before(function (done) {
+
+    before(function(done){
+        this.timeout(10000);
+        setTimeout(done, 5000);
+    });
+
+    it('preps database, would be in before, but need to wait for server code to finishc', function (done) {
         var notifier = new Pattern.AsyncCallbackListCompleteNotifier();
         Meteor.call('clearCollections', notifier.registerEmptyCallback() );
         Meteor.subscribe('allDocumentCollection', notifier.registerEmptyCallback() );
         Meteor.subscribe('allAccessCollection', notifier.registerEmptyCallback() );
 
-        this.timeout(10000);
-        setTimeout(notifier.registerEmptyCallback(), 5000);
-
         notifier.onCompleted( done );
         notifier.start();
-    });
-
-    after(function () {
-        //Meteor.call('dropUserCollection', done);
     });
 
     var userId1;
     var userId2;
     it('creates mock user accounts and ensures they were added', function (done) {
         var notifier = new Pattern.AsyncCallbackListCompleteNotifier();
-        Accounts.createUser(account1, notifier.registerCallback( function(args){ userId1 = Meteor.userId();}) );
-        Accounts.createUser(account2, notifier.registerCallback( function(args){ userId2 = Meteor.userId();}) );
+        Accounts.createUser(account1, notifier.registerCallback( function(){ userId1 = Meteor.userId();}) );
+        Accounts.createUser(account2, notifier.registerCallback( function(){ userId2 = Meteor.userId();}) );
 
         notifier.onCompleted(()=> {
             console.log(userId1);
@@ -114,7 +111,7 @@ describe('exampleAccessManager',function() {
 
     it('gives user2 modify rights on its document', function(done){
         Meteor.call('addModifyPermission', docId1, userId2, function (error, documentId) {
-            console.log("user1:doc1:Add Perm")
+            console.log("user1:doc1:Add Perm");
             console.log(error);
             console.log(documentId);
             assert.isUndefined(error, "No error was thrown");
