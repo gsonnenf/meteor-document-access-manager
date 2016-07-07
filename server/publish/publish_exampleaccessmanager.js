@@ -1,13 +1,15 @@
 /**
  * Created by Greg on 6/28/2016.
  */
-import '/common/collection_exampleaccessmanager'
-import '/common/accessmanager'
+import '/common/collections'
 import '/server/utility_security_server'
+import {AccessManager} from '/common/accessmanager'
 
 exampleAccessManager = new AccessManager({
     documentCollection: ExampleDocumentCollection,
     accessCollection: ExampleAccessCollection,
+    documentCollectionName: 'ExampleDocumentCollection',
+    
     options: {autoAssignOwner: true}
 });
 
@@ -19,15 +21,6 @@ Meteor.publish('allDocumentCollection', function() {
 
 Meteor.publish( 'allAccessCollection', function(){
     return ExampleAccessCollection.find();
-});
-
-Meteor.publish('myDocumentCollection', function() {
-    return ExampleDocumentCollection.find();
-});
-
-Meteor.publish( 'myAccessCollection', function(permissionList){
-    if (permissionList) return exampleAccessManager.getDocCursorByAccessKey( this.userId, permissionList );
-    else return exampleAccessManager.getDocCursorByAccessKey( this.userId );
 });
 
 Meteor.methods({

@@ -4,11 +4,11 @@
  * Version: 1.0.0
  */
 
+import "/common/collections"
+import {AsyncCallbackListCompleteNotifier} from '/common/lib/chimerapatterns'
 
-import "/common/collection_exampleaccessmanager"
 
 describe('exampleAccessManager',function() {
-
 
     var account1 = {username: "TestUser1", password: "1234"};
     var account2 = {username: "TestUser2", password: "1234"};
@@ -21,12 +21,13 @@ describe('exampleAccessManager',function() {
 
 
     before(function(done){
+        Meteor.logout();
         this.timeout(10000);
         setTimeout(done, 5000);
     });
 
-    it('preps database, would be in before, but need to wait for server code to finishc', function (done) {
-        var notifier = new Pattern.AsyncCallbackListCompleteNotifier();
+    it('preps database, would be in before, but need to wait for server code to finish', function (done) {
+        var notifier = new AsyncCallbackListCompleteNotifier();
         Meteor.call('clearCollections', notifier.registerEmptyCallback() );
         Meteor.subscribe('allDocumentCollection', notifier.registerEmptyCallback() );
         Meteor.subscribe('allAccessCollection', notifier.registerEmptyCallback() );
@@ -38,7 +39,7 @@ describe('exampleAccessManager',function() {
     var userId1;
     var userId2;
     it('creates mock user accounts and ensures they were added', function (done) {
-        var notifier = new Pattern.AsyncCallbackListCompleteNotifier();
+        var notifier = new AsyncCallbackListCompleteNotifier();
         Accounts.createUser(account1, notifier.registerCallback( function(){ userId1 = Meteor.userId();}) );
         Accounts.createUser(account2, notifier.registerCallback( function(){ userId2 = Meteor.userId();}) );
 
@@ -133,7 +134,5 @@ describe('exampleAccessManager',function() {
             done();
         });
     });
-
-    
 });
 

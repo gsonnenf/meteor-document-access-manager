@@ -4,10 +4,10 @@
  * Version 1.0.0
  *
  */
-Pattern = {};
-Pattern.Lock = {};
-Pattern.Lock.LockError = new Error("Property has been locked and cannot be set.");
-Pattern.Multicast = ( function() {
+ChimeraPatterns = {};
+ChimeraPatterns.Lock = {};
+ChimeraPatterns.Lock.LockError = new Error("Property has been locked and cannot be set.");
+ChimeraPatterns.Multicast = ( function() {
 
     class MulticastBase {
         constructor() {
@@ -29,7 +29,7 @@ Pattern.Multicast = ( function() {
             Object.defineProperty(target, property, {
                 configurable: true,
                 get: ()=> {return this },
-                set: ()=> {throw Pattern.Lock.LockError }
+                set: ()=> {throw ChimeraPatterns.Lock.LockError }
             });
         };
     }
@@ -38,7 +38,7 @@ Pattern.Multicast = ( function() {
     MulticastBase.prototype.call = Function.call;
     MulticastBase.prototype.bind = Function.bind;
 
-    
+
     class MulticastFunction extends MulticastBase {
         constructor() {
             super( );
@@ -51,7 +51,7 @@ Pattern.Multicast = ( function() {
     };
 
     class MulticastEvent extends MulticastBase {
-        constructor(target, property) {
+        constructor(target, property, parameters) {
             super();
             var multicastEvent = (eventCallback) => { super.push(eventCallback) };
             multicastEvent._array = this._array;
@@ -70,7 +70,7 @@ Pattern.Multicast = ( function() {
             this._array.forEach((callback) => { callback.apply(this._target, arguments); })
         }
     };
-    
+
     return {
         MulticastBase: MulticastBase,
         MulticastEvent: MulticastEvent,
@@ -79,7 +79,7 @@ Pattern.Multicast = ( function() {
 })();
 
 ////*************** Aspect orientated code *************************************
-Pattern.Aspect = ( function() {
+ChimeraPatterns.Aspect = ( function() {
 
     //TODO: add proxy back in when it is supported in meteor.
     /*
@@ -91,7 +91,7 @@ Pattern.Aspect = ( function() {
      }
      });
      */
-    
+
     return class Aspect {
 
         static onFuncEntry(func, aspectMethod) {
@@ -143,8 +143,8 @@ Pattern.Aspect = ( function() {
 
         static createAspectProxy(targetMethod) {
             if (typeof(targetMethod) != "function") throw new Error("Only functions can be added to event callback list.");
-            var onMethodEntry = new Pattern.Multicast.MulticastFunction;
-            var onMethodExit = new Pattern.Multicast.MulticastFunction;
+            var onMethodEntry = new ChimeraPatterns.Multicast.MulticastFunction;
+            var onMethodExit = new ChimeraPatterns.Multicast.MulticastFunction;
 
             var aspectProxy = function aspectProxyFunc() {
                 var argumentsList = [...arguments];
@@ -169,11 +169,11 @@ Pattern.Aspect = ( function() {
 ////*************** Observable patter code  **********************************************************************
 
 //TODO: Fix observable list so objects can be garbage collected.
-Pattern.Observable = {};
-Pattern._Observable = {};
-Pattern._Observable.ObservableList = [];
+ChimeraPatterns.Observable = {};
+ChimeraPatterns._Observable = {};
+ChimeraPatterns._Observable.ObservableList = [];
 
-Pattern._Observable.bindOnChanged = function( parent, childName, onChanged ) {
+ChimeraPatterns._Observable.bindOnChanged = function(parent, childName, onChanged ) {
     Object.defineProperty( parent, 'onChanged_' + childName , {
         get: function() {return onChanged},
         set: function() { console.log("Cannot 'set' onChanged observable. To add an event use .push(), to remove observer call Utility.removeObservable()")},
@@ -181,11 +181,11 @@ Pattern._Observable.bindOnChanged = function( parent, childName, onChanged ) {
     });
 };
 
-Pattern.Observable.setObservable = function( parent, childName ){
+ChimeraPatterns.Observable.setObservable = function(parent, childName ){
     var variable = parent[childName];
-    var onChanged = new Pattern.Multicast.MulticastFunction(['variable','oldVariable']);
-    Pattern._Observable.ObservableList.push( {parent: parent, childName: childName, onChanged: onChanged} );
-    Pattern._Observable.bindOnChanged( parent, childName, onChanged );
+    var onChanged = new ChimeraPatterns.Multicast.MulticastFunction(['variable','oldVariable']);
+    ChimeraPatterns._Observable.ObservableList.push( {parent: parent, childName: childName, onChanged: onChanged} );
+    ChimeraPatterns._Observable.bindOnChanged( parent, childName, onChanged );
 
     Object.defineProperty(parent, childName, {
         get: function() { return variable; },
@@ -198,20 +198,20 @@ Pattern.Observable.setObservable = function( parent, childName ){
     return onChanged;
 };
 
-Pattern.Observable.removeObservable = function(parent, childName) {
+ChimeraPatterns.Observable.removeObservable = function(parent, childName) {
     delete parent['onChanged_' + childName];
     var temp = parent[childName];
     delete parent[childName];
     parent[childName] = temp;
-    var index = Pattern._Observable.ObservableList.findIndex((element)=> {return (element.parent == parent && element.childName == childName) });
+    var index = ChimeraPatterns._Observable.ObservableList.findIndex((element)=> {return (element.parent == parent && element.childName == childName) });
     if (index == -1) return;
-    delete Pattern._Observable.ObservableList[index];
+    delete ChimeraPatterns._Observable.ObservableList[index];
 };
 //*** AnsychronousCallbackListNotifier *********************************************************************************
 
-Pattern.AsyncCallbackListCompleteNotifier = class AsyncCallbackListCompleteNotifier {
+ChimeraPatterns.AsyncCallbackListCompleteNotifier = class AsyncCallbackListCompleteNotifier {
     constructor() {
-        this.onCompleted = new Pattern.Multicast.MulticastEvent(this,'onComplete');
+        this.onCompleted = new ChimeraPatterns.Multicast.MulticastEvent(this,'onComplete');
         this._callbackList = [];
         this._isActive = false;
         this.isComplete = false;
@@ -254,13 +254,17 @@ Pattern.AsyncCallbackListCompleteNotifier = class AsyncCallbackListCompleteNotif
     }
 };
 
-
+export var MulticastEvent = ChimeraPatterns.Multicast.MulticastEvent;
+export var Aspect = ChimeraPatterns.Aspect;
+export var MulticastFunction = ChimeraPatterns.Multicast.MulticastFunction;
+export var AsyncCallbackListCompleteNotifier = ChimeraPatterns.AsyncCallbackListCompleteNotifier;
+export var Observable = ChimeraPatterns.Observable;
 /*
- Pattern.smartObject = {}
+ ChimeraPatterns.smartObject = {}
 
- Pattern.SmartObject.getCallback = function( target,property){}
+ ChimeraPatterns.SmartObject.getCallback = function( target,property){}
 
- Pattern.SmartObject.new = function(){
+ ChimeraPatterns.SmartObject.new = function(){
  return new Proxy(new this(),{
  get: (target, property)=>{},
  set: (target, property)=>{}

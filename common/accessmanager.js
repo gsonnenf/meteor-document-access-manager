@@ -2,9 +2,7 @@
  * Created by Greg on 6/28/2016.
  */
 
-import '/common/chimerapatterns'
-var MulticastEvent = Pattern.Multicast.MulticastEvent;
-
+import {MulticastEvent, Aspect} from '/common/lib/chimerapatterns'
 
 AccessModel = class AccessModel{
     constructor({documentId, accessKey, permissionList }) {
@@ -14,7 +12,7 @@ AccessModel = class AccessModel{
     }
 };
 
-AccessManager = class AccessManager {
+export class AccessManager {
     constructor({documentCollection, accessCollection, options={}}) {
         this.accessCollection = accessCollection;
         this.documentCollection = documentCollection;
@@ -24,12 +22,12 @@ AccessManager = class AccessManager {
 
         this.onDocumentAdded = new MulticastEvent( this, 'onDocumentAdded');
         this.onDocumentModify = new MulticastEvent( this, 'onDocumentModify');
-        this.onDocumentDelete = new MulticastEvent( this, 'onDocumentDelete');
+        this.onDocumentRemoved = new MulticastEvent( this, 'onDocumentRemoved');
 
         this.documentCursor.observe({
-            added: ( document )=> { this.onDocumentAdded.callMethods( document ) } ,
-            deleted: ( document )=> { this.onDocumentModify.callMethods( document ) },
-            removed: ( document )=> { this.onDocumentDelete.callMethods( document ) },
+            added: ( document )=> { this.onDocumentAdded.callEvent( document ) } ,
+            deleted: ( document )=> { this.onDocumentModify.callEvent( document ) },
+            removed: ( document )=> { this.onDocumentRemoved.callEvent( document ) },
         });
 
 
@@ -41,11 +39,25 @@ AccessManager = class AccessManager {
         
         /*** event bindings *******************************************************************************************/
        if (options.autoAssignOwner)
-            Pattern.Aspect.onMethodExit(this.documentCollection, 'insert', (documentId, args)=> {
-                this.addPermissions(documentId, Meteor.userId(), AccessManager.DefaultPermEnum.Owner );
+            Aspect.onMethodExit(this.documentCollection, 'insert', (documentId, args)=> {
+                if (documentId) this.addPermissions(documentId, Meteor.userId(), AccessManager.DefaultPermEnum.Owner );
             });
 
-        if (options.autoDelete) this.onDocumentDelete( (document)=> { this.accessCollection.remove({documentId: document._id}); });
+        if (options.autoDelete) {
+            Aspect.onMethodExit(this.documentCollection, 'remove', (isRemoved, docId)=> {
+                //TODO: Change to a method where we can see what was deleted.
+                //if (isRemoved) console.log( "remove?" + this.accessCollection.remove({documentId: docId}));
+                console.log("db.remove called:" + isRemoved);
+                console.log(docId);
+            });
+
+            this.onDocumentRemoved( (document)=>{
+                console.log("DOCUMENT REMOVED: " )
+                console.log( document);
+                if (document) this.accessCollection.remove({documentId: document._id});
+            })
+        }
+          
         
     }
 
@@ -97,59 +109,50 @@ AccessManager = class AccessManager {
 
     //*** Queries ****************************************************************************************************
 
-    getAccessCursorByAccessKey( accessKey ) {
+    getAccessCursorByKey(accessKey ) {
         return this.accessCollection.find( { accessKey: accessKey } );
     }
 
-    getAccessCursorByAccessKeyAndAnyPerm(accessKey,permissions) {
+    getAccessCursorByKeyAndPermAny(accessKey, permissions) {
         if (!(permissions instanceof Array)) permissions = [permissions];
         return this.accessCollection.find( {accessKey: accessKey, permissionList: {$in: permissions} } );
     }
-
-    getAccessCursorByAccessKeyAndAllPerm(accessKey,permissions) {
+    getAccessCursorByKeyAndPermAll(accessKey, permissions) {
         if (!(permissions instanceof Array)) permissions = [permissions];
         return this.accessCollection.find( {accessKey: accessKey, permissionList: {$all: permissions} } );
     }
 
-    getDocCursorByAccessKey( accessKey ) {
-        var accessModels = this.accessCollection.find({ accessKey: accessKey });
-        this.documentCollection.find( accessModels.map( (element)=>{ return element.documentId }) );
+    //****//
+    getDocIdsByKey(accessKey) { return this.getDocIdsByAccessCursor(this.getAccessCursorByKey(accessKey)); }
+    getDocIdsByKeyAndPermAny( accessKey,permissions) { return this.getDocIdsByAccessCursor(this.getAccessCursorByKeyAndPermAny(accessKey,permissions)); }
+    getDocIdsByKeyAndPermAll( accessKey,permissions) { return this.getDocIdsByAccessCursor(this.getAccessCursorByKeyAndPermAll(accessKey,permissions)); }
+
+
+    getDocIdsByAccessCursor( accessCursor ) {
+        return accessCursor.fetch().map( (element)=>{ return element.documentId });
     }
 
-    getDocCursorByAccessKeyAndAnyPerm(accessKey,permissions) {
-        if (!(permissions instanceof Array)) permissions = [permissions];
-        var accessModels = this.accessCollection.find(
-            { accessKey: accessKey, permissionList: {$in: permissions } }, {fields:{ documentId: 1, _id: 0 }}).fetch();
-        this.documentCollection.find( accessModels.map( (element)=>{ return element.documentId }) );
+    getDocCursorFromDocIds( documentIdList ) {
+        return this.documentCollection.find( {_id: {$in: documentIdList }} );
     }
 
-    getDocCursorByAccessKeyAndAllPerm(accessKey,permissions) {
-        if (!(permissions instanceof Array)) permissions = [permissions];
-        var accessModels = this.accessCollection.find(
-            { accessKey: accessKey, permissionList: {$all: permissions } }, {fields:{ documentId: 1, _id: 0 }}).fetch();
-        this.documentCollection.find( accessModels.map( (element)=>{ return element.documentId }) );
+    getDocCursorFromAccessCursor( accessCursor ) {
+       return this.getDocCursorFromDocIds( this.getDocIdsByAccessCursor(accessCursor));
     }
 
-    findDocIdsByAccessKey (accessKey) {
-        var accessModels = this.accessCollection.find( { accessKey: accessKey },{fields:{ documentId: 1, _id: 0 }}).fetch();
-        console.log(accessModels);
-        return accessModels.map( (element)=>{ return element.documentId });
-    }
+    /*******Autopublish *****************************************************/
+    securePublish(name, accessKey, permissionList) {
+        var self = this;
+        Meteor.publish(name + "Access", function() {
+            var key = (typeof accessKey == "function") ? accessKey.apply(this) : accessKey;
+            return self.getAccessCursorByKeyAndPermAny( key, permissionList );
+        });
 
-    findDocIdsByAccessKeyAndAnyPerm ( accessKey, permissions ) {
-        if (!(permissions instanceof Array)) permissions = [permissions];
-        var accessModels = this.accessCollection.find(
-            { accessKey: accessKey, permissionList: {$in: permissions } }, {fields:{ documentId: 1, _id: 0 }}).fetch();
-        return accessModels.map( (element)=>{ return element.documentId });
-    }
-
-    findDocIdsByAccessKeyAndAllPerm ( accessKey, permissions ) {
-        if (!(permissions instanceof Array)) permissions = [permissions];
-        var accessModels = this.accessCollection.find(
-            { accessKey: accessKey, permissionList: {$all: permissions } }, {fields:{ documentId: 1, _id: 0 }}).fetch();
-        return accessModels.map( (element)=>{ return element.documentId });
-    }
-
+        Meteor.publish(name+'Document', function(){
+            var key = (typeof accessKey == "function") ? accessKey.apply(this) : accessKey;
+            return self.getDocCursorFromAccessCursor( self.getAccessCursorByKeyAndPermAny( key, permissionList) );
+        });
+    };
 };
 
 AccessManager.DefaultPermEnum = {
@@ -162,3 +165,23 @@ AccessManager.DefaultPermEnum = {
 };
 
 Object.freeze(AccessManager.DefaultPermEnum);
+
+
+/*
+///Low level API code for join
+ publishDocCollectionByAccessKey( thisPublish, accessKey ){
+ var accessCursor = this.accessCollection.find({ accessKey: accessKey });
+ accessCursor.observe({
+ added: (accessDoc)=>{ thisPublish.added(
+ this.documentCollectionName,
+ accessDoc.documentId,
+ this.documentCollection.findOne({_id:accessDoc.documentId})
+ )},
+ removed:(accessDocId)=> {
+ var accessDoc = this.accessCollection.findOne({_id:accessDocId});
+ if (accessDoc) thisPublish.removed(this.documentCollectionName, accessDoc.documentId )
+ }
+ });
+
+ }
+ */

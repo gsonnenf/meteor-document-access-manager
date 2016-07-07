@@ -2,8 +2,8 @@
  * Created by Greg on 6/29/2016.
  */
 
-import '/server/publish_exampleaccessmanager'
-import '/common/accessmanager'
+import '/server/publish/publish_exampleaccessmanager'
+import {AccessManager} from '/common/accessmanager'
 
 
 describe('AccessManager', function() {
@@ -189,11 +189,12 @@ describe('AccessManager', function() {
 
         testAccessManager.addPermissions( testDocId1, testKey1, testPerm);
 
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey1), [testDocId1], "correct key");
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey2), [], "wrong key");
+        
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey1), [testDocId1], "correct key");
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey2), [], "wrong key");
 
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey1,[testPerm]), [testDocId1], "correct key/correct perm");
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey1, [testPerm2]), [], "correct key/wrong perm");
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey1,[testPerm]), [testDocId1], "correct key/correct perm");
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey1, [testPerm2]), [], "correct key/wrong perm");
 
         testAccessManager.addPermissions( testDocId2, testKey1, testPerm);
         testAccessManager.addPermissions( testDocId2, testKey2, testPerm);
@@ -202,19 +203,19 @@ describe('AccessManager', function() {
         testAccessManager.addPermissions( testDocId3, testKey3, testPerm2);
         testAccessManager.addPermissions( testDocId3, testKey3, testPerm3);
 
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey1), [testDocId1,testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey2), [testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey3), [testDocId2,testDocId3]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKey(testKey4), []);
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey1), [testDocId1,testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey2), [testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey3), [testDocId2,testDocId3]);
+        assert.sameMembers(testAccessManager.getDocIdsByKey(testKey4), []);
 
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey1,[testPerm]), [testDocId1,testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey2,[testPerm]), [testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey3,[testPerm]), [testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey4, [testPerm]), []);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey1,[testPerm]), [testDocId1,testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey2,[testPerm]), [testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey3,[testPerm]), [testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey4, [testPerm]), []);
 
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAllPerm(testKey3,[testPerm]), [testDocId2]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAllPerm(testKey3,[testPerm2,testPerm3]), [testDocId3]);
-        assert.sameMembers(testAccessManager.findDocIdsByAccessKeyAndAnyPerm(testKey4, [testPerm,testPerm2,testPerm3]), []);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAll(testKey3,[testPerm]), [testDocId2]);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAll(testKey3,[testPerm2,testPerm3]), [testDocId3]);
+        assert.sameMembers(testAccessManager.getDocIdsByKeyAndPermAny(testKey4, [testPerm,testPerm2,testPerm3]), []);
 
     });
 
